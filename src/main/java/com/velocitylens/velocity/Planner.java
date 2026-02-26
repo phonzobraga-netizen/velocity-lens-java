@@ -1,0 +1,55 @@
+package com.velocitylens.velocity;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+public final class Planner {
+  public static final class RankedTask {
+    public final Task task;
+    public final double score;
+
+    RankedTask(Task task, double score) {
+      this.task = task;
+      this.score = score;
+    }
+  }
+
+  private Planner() {}
+
+  public static double score(Task task) {
+    double effort = Math.max(task.effort, 0.25d);
+    double confidence = Math.max(0.0d, Math.min(task.confidence, 1.0d));
+    return ((task.impact * 1.7d) + (task.urgency * 1.3d)) * confidence / effort;
+  }
+
+  public static List<RankedTask> rank(List<Task> tasks) {
+    List<RankedTask> ranked = new ArrayList<>();
+    for (Task task : tasks) {
+      ranked.add(new RankedTask(task, score(task)));
+    }
+    ranked.sort(
+        Comparator
+            .comparingDouble((RankedTask rankedTask) -> rankedTask.score)
+            .reversed()
+            .thenComparing(rankedTask -> rankedTask.task.name));
+    return ranked;
+  }
+
+  public static List<RankedTask> buildSprint(List<Task> tasks, double budget) {
+    List<RankedTask> ranked = rank(tasks);
+    List<RankedTask> selected = new ArrayList<>();
+    double used = 0.0d;
+
+    for (RankedTask rankedTask : ranked) {
+      if (used + rankedTask.task.effort > budget) {
+        continue;
+      }
+      selected.add(rankedTask);
+      used += rankedTask.task.effort;
+    }
+    return selected;
+  }
+}
+
+
